@@ -14,3 +14,7 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
+
+// define API endpoints
+// connect to database
+// implement data storage using react-native-sqlite-storage
