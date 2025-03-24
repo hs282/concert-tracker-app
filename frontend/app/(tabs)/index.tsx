@@ -5,55 +5,47 @@ import {
   Text,
   View,
 } from "react-native";
-import EvilIcons from "@expo/vector-icons/EvilIcons";
-import FeedItem from "@/components/FeedItem";
 import Feed from "@/components/Feed";
-
-const backgroundImage = {
-  uri: "https://media.gettyimages.com/id/1645930993/vector/blurred-fluid-dark-gradient-colourful-background.jpg?s=612x612&w=0&k=20&c=cEPW-qd3k8OID7CV-Z7KEp2P2z3w4Zs9QqorK32LO_8=",
-};
+import { useUser } from "@/context/UserContext";
+import { useState } from "react";
+import axios from "axios";
+import { APP_CONFIG } from "@/constants/config";
 
 export default function Index() {
-  const feedItems = [
-    {
-      user: "Elise",
-      eventName: "Alicia Keys Tour",
-      date: new Date().toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      }),
-      action: "saved",
-      id: "1",
-    },
-    {
-      user: "Fernando",
-      eventName: "Kaytranada World Tour",
-      date: new Date().toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      }),
-      action: "attended",
-      id: "2",
-    },
-    {
-      user: "Lisa",
-      eventName: "Usher",
-      date: new Date().toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      }),
-      action: "saved",
-      id: "3",
-    },
-  ];
+  const { user, loading } = useUser();
+  const [feedItems, setFeedItems] = useState([]);
+
+  if (loading)
+    return (
+      <View>
+        <Text>Loading...</Text>
+      </View>
+    );
+  if (!user)
+    return (
+      <View>
+        <Text>Please log in</Text>
+      </View>
+    );
+
+  const getNewsFeed = async () => {
+    try {
+      const res = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_BASE_URL}/newsfeed/${user.id}`
+      );
+      const feedItems = await res.data.newsfeed;
+      setFeedItems(feedItems);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  getNewsFeed();
 
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-        source={backgroundImage}
+        source={APP_CONFIG.backgroundImage}
         style={styles.backgroundImage}
         resizeMode="cover"
       >

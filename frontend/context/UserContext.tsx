@@ -1,10 +1,26 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 
-const UserContext = createContext(null);
+export interface User {
+  id: string;
+  profile_photo_url: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  username: string;
+  firebase_uid: string;
+}
 
-export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+interface UserContextType {
+  user: User | null;
+  loading: boolean;
+  setUser: (user: User | null) => void;
+}
+
+const UserContext = createContext<UserContextType | undefined>(undefined);
+
+export const UserProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -13,8 +29,6 @@ export const UserProvider = ({ children }) => {
     // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        //const token = await firebaseUser.getIdToken();
-        //fetchUserProfile(firebaseUser.uid, token);
         fetchUserProfile(firebaseUser.uid);
       } else {
         setUser(null);
@@ -26,11 +40,13 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   // Fetch full user details from database
-  const fetchUserProfile = async (firebaseUID) => {
+  const fetchUserProfile = async (firebaseUID: string) => {
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/user/${firebaseUID}` /*, {
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_BASE_URL}/user/${firebaseUID}` /*, {
         headers: { Authorization: `Bearer ${token}` },
-      }*/);
+      }*/
+      );
 
       if (!response.ok) throw new Error("Failed to fetch user data");
 
@@ -50,4 +66,11 @@ export const UserProvider = ({ children }) => {
   );
 };
 export { UserContext };
-//export const useUser = () => useContext(UserContext);
+
+export const useUser = (): UserContextType => {
+  const context = useContext(UserContext);
+  if (!context) {
+    throw new Error("useUser must be used within a UserProvider");
+  }
+  return context;
+};

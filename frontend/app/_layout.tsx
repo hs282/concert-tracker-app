@@ -1,58 +1,50 @@
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import "react-native-reanimated";
 import { auth } from "@/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
-import { useColorScheme } from "@/hooks/useColorScheme";
 import React from "react";
-import { UserProvider } from '../context/UserContext'
+import { UserProvider } from "../context/UserContext";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(
-    () =>
-      onAuthStateChanged(auth, (user) => {
-        if (!user) {
-          router.push("/login");
-        }
-      }),
-    [auth]
-  );
-
-  const colorScheme = useColorScheme();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  // const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
   useEffect(() => {
-    if (loaded) {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsAuthenticated(!!user);
+    });
+
+    return () => unsubscribe(); // Cleanup on unmount
+  }, []);
+
+  useEffect(() => {
+    if (loaded && isAuthenticated !== null) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, isAuthenticated]);
 
-  if (!loaded) {
+  if (!loaded || isAuthenticated === null) {
     return null;
   }
 
   return (
     <UserProvider>
-      <Stack screenOptions={{ headerShown: false }} initialRouteName="login">
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="login" />
-        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="signup" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="marked-events-list" />
+        <Stack.Screen name="event-details" />
       </Stack>
     </UserProvider>
   );

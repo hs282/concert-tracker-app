@@ -7,21 +7,15 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { useEffect, useState } from "react";
-import { auth } from "../firebase";
 import { router } from "expo-router";
-
-// const handleSignOut = () => {
-// auth.signOut().then(() => {
-// navigation.replace("Login")
-//  }).catch(error => alert(error.message))
-// }
+import { auth } from "@/firebase";
 
 export default function LoginScreen({}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   useEffect(() => {
-    // when we leave this screen, it's gonna unsubscribe
+    // when we leave this screen, it will unsubscribe
     // from this listener so that it doesn't keep listening
     // when it shouldn't
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -38,7 +32,6 @@ export default function LoginScreen({}) {
       .signInWithEmailAndPassword(email, password)
       .then((userCredentials) => {
         const user = userCredentials.user;
-        console.log("Logged in with:", user?.email);
         router.push("/");
       })
       .catch((error) => alert(error.message));
@@ -68,13 +61,8 @@ export default function LoginScreen({}) {
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Log in</Text>
         </TouchableOpacity>
-        {/*<TouchableOpacity
-                    style={styles.button}
-                    onPress={handleSignup}>
-                        <Text style={styles.buttonText}>Sign up</Text>
-                </TouchableOpacity>*/}
       </View>
-      <View style={styles.footerView}>
+      <View>
         <Text style={styles.footerText}>Don't have an account? </Text>
         <Text onPress={() => router.push("/signup")} style={styles.footerLink}>
           Sign up
@@ -120,7 +108,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 16,
   },
-  footerView: {},
   footerText: {
     fontSize: 20,
   },

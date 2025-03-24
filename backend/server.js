@@ -4,17 +4,18 @@ const bodyParser = require("body-parser");
 const app = express();
 const port = 3000;
 const { Pool } = require("pg");
+require("dotenv").config({ override: true });
+const axios = require("axios");
 
-const TICKETMASTER_API_KEY = process.env.TICKETMASTER_API_KEY;
 const TICKETMASTER_API_URL =
   "https://app.ticketmaster.com/discovery/v2/events.json?classificationName=music";
 
 const pool = new Pool({
-  user: "hshin", // process.env.USER
-  host: "localhost",
-  port: 5432,
-  password: "Sheendong18!!",
-  database: "concert_tracker_db",
+  user: process.env.USER,
+  host: process.env.HOST,
+  port: process.env.PORT,
+  password: process.env.PASSWORD,
+  database: process.env.DATABASE,
 });
 
 pool.on("connect", () => {
@@ -53,10 +54,19 @@ app.get("/user/:firebase_uid", async (req, res) => {
   }
 });
 
+// Create user
 app.post("/user", async (req, res) => {
-  const { first_name, last_name, username, email, password } = req.body;
+  const { first_name, last_name, username, email, password, firebase_uid } =
+    req.body;
 
-  if (!first_name || !last_name || !username || !email || !password) {
+  if (
+    !first_name ||
+    !last_name ||
+    !username ||
+    !email ||
+    !password ||
+    !firebase_uid
+  ) {
     return res.status(400).json({ message: "Invalid request data" });
   }
 
@@ -70,8 +80,8 @@ app.post("/user", async (req, res) => {
     }
 
     await pool.query(
-      "INSERT INTO users (first_name, last_name, username, email, profile_photo_url) VALUES ($1, $2, $3, $4, null)",
-      [first_name, last_name, username, email]
+      "INSERT INTO users (first_name, last_name, username, email, firebase_uid, profile_photo_url) VALUES ($1, $2, $3, $4, $5, null)",
+      [first_name, last_name, username, email, firebase_uid]
     );
 
     res.status(201).json({ message: "User created" });
@@ -81,7 +91,7 @@ app.post("/user", async (req, res) => {
   }
 });
 
-// mark event as saved or attended
+// Mark event as saved or attended
 app.post("/user/concerts", async (req, res) => {
   const {
     user_id,
@@ -128,12 +138,11 @@ app.post("/user/concerts", async (req, res) => {
       `INSERT INTO user_concerts (user_id, concert_id, status)
        VALUES ($1, $2, $3)
        ON CONFLICT (user_id, concert_id)
-       DO UPDATE SET status = EXCLUDED.status`,
+       DO UPDATE SET status = EXCLUDED.status, updated_at = CURRENT_TIMESTAMP`,
       [user_id, concertData.id, status]
     );
 
     await client.query("COMMIT");
-
     res.status(200).json({ message: "Concert marked successfully" });
   } catch (error) {
     await client.query("ROLLBACK");
@@ -146,7 +155,7 @@ app.post("/user/concerts", async (req, res) => {
   }
 });
 
-// get user's events (saved, attended, or all)
+// Get user's marked events ("saved", "attended", or all)
 app.get("/user/:user_id/concerts", async (req, res) => {
   const { user_id } = req.params;
   const { status } = req.query;
@@ -162,7 +171,8 @@ app.get("/user/:user_id/concerts", async (req, res) => {
 
   try {
     let query = `
-      SELECT user_concerts.status, concerts.* FROM user_concerts
+      SELECT user_concerts.id AS user_concert_id, user_concerts.updated_at AS marked_date, user_concerts.status, concerts.name AS concert_name, concerts.date AS concert_date, concerts.ticketmaster_id, concerts.url
+      FROM user_concerts
       JOIN concerts ON user_concerts.concert_id = concerts.id
       WHERE user_concerts.user_id = $1`;
 
@@ -173,7 +183,7 @@ app.get("/user/:user_id/concerts", async (req, res) => {
       params.push(status);
     }
 
-    query += " ORDER BY concerts.date ASC";
+    query += " ORDER BY user_concerts.updated_at DESC";
 
     const { rows, rowCount } = await pool.query(query, params);
 
@@ -184,33 +194,7 @@ app.get("/user/:user_id/concerts", async (req, res) => {
   }
 });
 
-// get user's profile feed (both saved and attended events)
-/* app.get("/user/:user_id/marked-concerts", async (req, res) => {
-  const { user_id } = req.params;
-
-  if (!user_id) {
-    return res.status(400).json({ message: "User ID is required" });
-  }
-
-  try {
-    const query = `
-          SELECT concerts.id, concerts.name, concerts.date, concerts.url, user_concerts.status, user_concerts.created_at
-          FROM user_concerts
-          JOIN concerts ON user_concerts.concert_id = concerts.id
-          WHERE user_concerts.user_id = $1
-          ORDER BY user_concerts.created_at DESC;
-      `;
-
-    const { rows } = await pool.query(query, [user_id]);
-
-    res.status(200).json({ concerts: rows });
-  } catch (error) {
-    console.error("Error fetching marked concerts:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-}); */
-
-// get a user's friends list
+// Get user's friends list
 app.get("/friends/:user_id", async (req, res) => {
   const { user_id } = req.params;
 
@@ -236,7 +220,7 @@ app.get("/friends/:user_id", async (req, res) => {
   }
 });
 
-// get a user's friend requests
+// Get user's friend requests
 app.get("/friends/requests/:user_id", async (req, res) => {
   const { user_id } = req.params;
 
@@ -261,7 +245,7 @@ app.get("/friends/requests/:user_id", async (req, res) => {
   }
 });
 
-// send a friend request
+// Send friend request
 app.post("/friends/send-request", async (req, res) => {
   const { user_id, friend_id } = req.body;
 
@@ -285,7 +269,7 @@ app.post("/friends/send-request", async (req, res) => {
   }
 });
 
-// cancel a pending friend request
+// Cancel a pending friend request
 app.delete("/friends/cancel-request", async (req, res) => {
   const { user_id, friend_id } = req.body;
 
@@ -318,7 +302,7 @@ app.delete("/friends/cancel-request", async (req, res) => {
   }
 });
 
-// accept a friend request
+// Accept friend request
 app.post("/friends/accept-request", async (req, res) => {
   const { user_id, friend_id } = req.body;
 
@@ -348,7 +332,7 @@ app.post("/friends/accept-request", async (req, res) => {
   }
 });
 
-// decline a friend request
+// Decline friend request
 app.post("/friends/decline-request", async (req, res) => {
   const { user_id, friend_id } = req.body;
 
@@ -359,7 +343,6 @@ app.post("/friends/decline-request", async (req, res) => {
   }
 
   try {
-    // Delete the friend request
     const result = await pool.query(
       "DELETE FROM friends WHERE user_id = $2 AND friend_id = $1 AND status = 'pending'",
       [user_id, friend_id]
@@ -378,7 +361,7 @@ app.post("/friends/decline-request", async (req, res) => {
   }
 });
 
-// unfriend another user
+// Unfriend user
 app.delete("/friends/remove", async (req, res) => {
   const { user_id, friend_id } = req.body;
 
@@ -389,7 +372,6 @@ app.delete("/friends/remove", async (req, res) => {
   }
 
   try {
-    // Delete the friendship where either user_id or friend_id matches
     const result = await pool.query(
       `DELETE FROM friends 
            WHERE (user_id = $1 AND friend_id = $2) 
@@ -409,7 +391,7 @@ app.delete("/friends/remove", async (req, res) => {
   }
 });
 
-// get newsfeed (a list of friends' activity, sorted by most recent)
+// Get newsfeed (a list of user's and friends' activity, sorted by most recent by default)
 app.get("/newsfeed/:user_id", async (req, res) => {
   const { user_id } = req.params;
 
@@ -421,11 +403,11 @@ app.get("/newsfeed/:user_id", async (req, res) => {
     // Get all friends of the user
     const friendsQuery = await pool.query(
       `SELECT friend_id 
-           FROM friends 
+           FROM friendships 
            WHERE user_id = $1 AND status = 'accepted'
            UNION
            SELECT user_id
-           FROM friends
+           FROM friendships
            WHERE friend_id = $1 AND status = 'accepted'`,
       [user_id]
     );
@@ -437,13 +419,14 @@ app.get("/newsfeed/:user_id", async (req, res) => {
       return res.status(404).json({ message: "No friends found" });
     }
 
-    // Get concerts from user and their friends, sorted by created_at
+    // Get user-concert interactions of user and their friends, sorted by updated_at
     const concertsQuery = await pool.query(
-      `SELECT uc.user_id, uc.concert_id, uc.status, uc.created_at, c.name AS concert_name, c.date AS concert_date
+      `SELECT uc.id AS user_concert_id, uc.user_id, users.first_name, uc.concert_id, uc.status, uc.updated_at AS marked_date, c.name AS concert_name, c.date AS concert_date, c.url
            FROM user_concerts uc
            JOIN concerts c ON c.id = uc.concert_id
-           WHERE uc.user_id = ANY($1::serial[])  -- user_id of friends + the user themselves
-           ORDER BY uc.created_at DESC`,
+           JOIN users ON users.id = uc.user_id
+           WHERE uc.user_id = ANY($1::integer[])  -- user_id of friends and the user themselves
+           ORDER BY uc.updated_at DESC`,
       [friendIds]
     );
 
@@ -454,7 +437,7 @@ app.get("/newsfeed/:user_id", async (req, res) => {
   }
 });
 
-// like a user's concert interaction
+// Like a user-concert interaction
 app.post("/user-concerts/:user_concert_id/like", async (req, res) => {
   const { user_id } = req.body;
   const { user_concert_id } = req.params;
@@ -480,7 +463,7 @@ app.post("/user-concerts/:user_concert_id/like", async (req, res) => {
   }
 });
 
-// unlike a user's concert interaction
+// Unlike a user-concert interaction
 app.delete("/user-concerts/:user_concert_id/like", async (req, res) => {
   const { user_id } = req.body;
   const { user_concert_id } = req.params;
@@ -502,7 +485,7 @@ app.delete("/user-concerts/:user_concert_id/like", async (req, res) => {
   }
 });
 
-// comment on a user's concert interaction
+// Comment on a user-concert interaction
 app.post("/user-concerts/:user_concert_id/comment", async (req, res) => {
   const { user_id, content } = req.body;
   const { user_concert_id } = req.params;
@@ -527,7 +510,7 @@ app.post("/user-concerts/:user_concert_id/comment", async (req, res) => {
   }
 });
 
-// delete a comment on a user's concert interaction
+// Delete a comment on a user-concert interaction
 app.delete(
   "/user-concerts/:user_concert_id/comment/:comment_id",
   async (req, res) => {
@@ -552,13 +535,13 @@ app.delete(
   }
 );
 
-// get likes and comments on a user's concert interaction
+// Get likes and comments on a user-concert interaction
 app.get("/user-concerts/:user_concert_id/reactions", async (req, res) => {
   const { user_concert_id } = req.params;
 
   try {
     const likesQuery = await pool.query(
-      `SELECT users.id, users.username 
+      `SELECT users.*
            FROM likes 
            JOIN users ON users.id = likes.user_id 
            WHERE likes.user_concert_id = $1`,
@@ -584,30 +567,29 @@ app.get("/user-concerts/:user_concert_id/reactions", async (req, res) => {
   }
 });
 
-// get concerts from Ticketmaster based on artist, concert name, city, and date
+// Get concerts from Ticketmaster based on keyword, city, and start date
 app.get("/concerts", async (req, res) => {
   try {
-    const { artist, concert_name, city, date } = req.query;
+    const { keyword, city, startDateTime } = req.query;
 
     let params = {
-      apikey: TICKETMASTER_API_KEY,
-      size: 20, // Number of results per request
+      apikey: process.env.TICKETMASTER_API_KEY,
+      page: 0,
+      size: 10, // Number of results per request
     };
 
     // Add filters if provided
-    if (artist) params.keyword = artist;
-    if (concert_name) params.keyword = concert_name;
+    if (keyword) params.keyword = keyword;
     if (city) params.city = city;
-    if (date) params.startDateTime = new Date(date).toISOString();
+    if (startDateTime) params.startDateTime = startDateTime;
 
     // Fetch from Ticketmaster API
     const response = await axios.get(TICKETMASTER_API_URL, { params });
 
-    // Extract concert data
     const concerts = response.data._embedded?.events || [];
 
     // Format the response
-    const formattedConcerts = concerts.map((concert) => ({
+    /* const formattedConcerts = concerts.map((concert) => ({
       id: concert.id,
       name: concert.name,
       url: concert.url,
@@ -616,9 +598,9 @@ app.get("/concerts", async (req, res) => {
       venue: concert._embedded?.venues?.[0]?.name || "Unknown Venue",
       city: concert._embedded?.venues?.[0]?.city?.name || "Unknown City",
       image: concert.images?.[0]?.url || null,
-    }));
+    })); */
 
-    res.status(200).json(formattedConcerts);
+    res.status(200).json(concerts);
   } catch (error) {
     console.error("Error fetching concerts:", error);
     res.status(500).json({ message: "Internal server error" });

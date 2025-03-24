@@ -2,24 +2,23 @@ import { ImageBackground, StyleSheet, TextInput, View } from "react-native";
 import EvilIcons from "@expo/vector-icons/EvilIcons";
 import { useEffect, useState } from "react";
 import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
-import EventsList from "@/components/EventsList";
+import EventsList, { TicketmasterEvent } from "@/components/EventsList";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
-import { auth } from "@/firebase";
-
-const backgroundImage = {
-  uri: "https://media.gettyimages.com/id/1645930993/vector/blurred-fluid-dark-gradient-colourful-background.jpg?s=612x612&w=0&k=20&c=cEPW-qd3k8OID7CV-Z7KEp2P2z3w4Zs9QqorK32LO_8=",
-};
+import axios from "axios";
+import { APP_CONFIG } from "@/constants/config";
 
 export default function Search() {
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState<TicketmasterEvent[]>([]);
   const [keyword, setKeyword] = useState("");
   const [city, setCity] = useState("");
   const [date, setDate] = useState(new Date());
-  //console.log(auth.currentUser?.email);
 
-  const handleDateChange = (event, selectedDate) => {
+  const handleDateChange = (
+    event: DateTimePickerEvent,
+    selectedDate: Date | undefined
+  ) => {
     if (selectedDate) setDate(selectedDate);
   };
 
@@ -29,29 +28,37 @@ export default function Search() {
   useEffect(() => {
     const getEvents = async () => {
       const formattedDate = date.toISOString().split(".")[0] + "Z"; // date without milliseconds
-      const response = await fetch(
-        `https://app.ticketmaster.com/discovery/v2/events.json?classificationName=music&keyword=${keyword}&city=${city}&startDateTime=${formattedDate}&apikey=GQsmw6b9MrQKuZAQtUavE0tv9rxDiw00`
-      );
-      const data = await response.json();
-      const embedded = await data._embedded;
-      const events = await embedded.events;
+      try {
+        const res = await axios.get(
+          `${process.env.EXPO_PUBLIC_API_BASE_URL}/concerts`,
+          {
+            params: {
+              keyword: keyword,
+              city: city,
+              startDateTime: formattedDate,
+            },
+          }
+        );
 
-      setEvents(events);
+        const events = await res.data;
+        setEvents(events);
+      } catch (error) {
+        console.error("Error:", error);
+      }
     };
 
-    getEvents();
+    if (!keyword && !city) setEvents([]);
+    else getEvents();
   }, [keyword, city, date]);
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
         <ImageBackground
-          source={backgroundImage}
+          source={APP_CONFIG.backgroundImage}
           style={styles.backgroundImage}
           resizeMode="cover"
         >
-          {/*<View><Text style={styles.tabHeader}>Search</Text></View> */}
-
           <View style={styles.searchParams}>
             <View style={styles.searchSection}>
               <EvilIcons name="search" size={28} style={styles.searchIcon} />
@@ -90,12 +97,6 @@ export default function Search() {
 }
 
 const styles = StyleSheet.create({
-  tabHeader: {
-    fontWeight: "bold",
-    fontSize: 30,
-    marginBottom: 30,
-    color: "white",
-  },
   container: {
     flex: 1,
   },
@@ -109,41 +110,8 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  postText: {
-    color: "white",
-  },
-  post: {
-    borderStyle: "solid",
-    borderColor: "white",
-    borderWidth: 1,
-    height: 80,
-    width: "100%",
-    justifyContent: "center",
-    padding: 10,
-    borderRadius: 10,
-    gap: 10,
-  },
-  postActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-  },
-  scrollView: {
-    backgroundColor: "pink",
-  },
-  event: {
-    borderStyle: "solid",
-    borderColor: "white",
-    borderWidth: 1,
-    height: 80,
-    width: "100%",
-    justifyContent: "center",
-    padding: 10,
-    borderRadius: 10,
-    gap: 10,
-  },
   searchBar: {
     flex: 1,
-    //height: 40,
     borderRadius: 10,
     color: "white",
     padding: 8,
@@ -164,7 +132,6 @@ const styles = StyleSheet.create({
   searchIcon: {
     color: "white",
   },
-  locationIcon: {},
   searchParams: {
     marginBottom: 20,
   },

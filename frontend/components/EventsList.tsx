@@ -1,6 +1,4 @@
 import AntDesign from "@expo/vector-icons/AntDesign";
-import EvilIcons from "@expo/vector-icons/EvilIcons";
-import Feather from "@expo/vector-icons/Feather";
 import {
   FlatList,
   Linking,
@@ -10,25 +8,35 @@ import {
   View,
 } from "react-native";
 import axios from "axios";
-import { auth } from "@/firebase";
-import { UserContext } from "../context/UserContext";
-import { useContext, useState } from "react";
+import { useUser } from "../context/UserContext";
+import { useState } from "react";
 import FontAwesome from "@expo/vector-icons/build/FontAwesome";
-import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
+import { MarkedEvent } from "@/app/(tabs)/profile";
 
 // to make the button change animated:
 // https://dev.to/vcapretz/instagram-like-button-in-react-native-and-reanimated-v2-3h3k
 
-export default function EventsList({ events }) {
-  const { user, setUser } = useContext(UserContext);
+export interface TicketmasterEvent {
+  dates: { start: { dateTime: string } };
+  id: string;
+  name: string;
+  url: string;
+}
 
-  const markConcert = async (
-    userId,
-    ticketmasterId,
-    concertName,
-    concertDate,
-    concertUrl,
-    status
+type Event = TicketmasterEvent | MarkedEvent;
+
+export default function EventsList({ events }: { events: Event[] }) {
+  const { user, loading } = useUser();
+  if (loading) return <Text>Loading...</Text>;
+  if (!user) return <Text>Please log in</Text>;
+
+  const markEvent = async (
+    userId: string,
+    ticketmasterId: string,
+    eventName: string,
+    eventDate: string,
+    eventUrl: string,
+    status: string
   ) => {
     try {
       const response = await axios.post(
@@ -36,91 +44,90 @@ export default function EventsList({ events }) {
         {
           user_id: userId,
           ticketmaster_id: ticketmasterId,
-          concert_name: concertName,
-          concert_date: concertDate,
-          concert_url: concertUrl,
+          concert_name: eventName,
+          concert_date: eventDate,
+          concert_url: eventUrl,
           status: status,
         },
         {
           headers: { "Content-Type": "application/json" },
         }
       );
-      console.log("Concert marked successfully");
+      console.log(response.data);
     } catch (error) {
       console.error("Error:", error.response?.data?.error || error.message);
     }
   };
 
-  // get user's saved concerts
-  // get user's attended concerts
-  // if this concert is in user's saved concerts, then display saved icon
-  // if this concert is in user's attended concerts, then display attended icon
+  const [attendedEventIds, setAttendedEventIds] = useState<Set<string>>();
+  const [savedEventIds, setSavedEventIds] = useState<Set<string>>();
 
-  // allConcerts = get all of user's concerts
-  // for each concert, if the concert's ticketmaster id is equal to
-  // any of the ticketmaster id's in allConcerts ,
-
-  const [attendedConcerts, setAttendedConcerts] = useState<Set<string>>();
-  const [savedConcerts, setSavedConcerts] = useState<Set<string>>();
-
-  const getUserConcerts = async () => {
+  const getUserEvents = async () => {
     try {
       const url = `${process.env.EXPO_PUBLIC_API_BASE_URL}/user/${user.id}/concerts`;
       const response = await axios.get(url);
 
-      console.log("Marked concerts retrieved successfully");
-      const concerts = await response.data.concerts;
+      const events = await response.data.concerts;
 
       // convert array to Set for faster lookup
-      const attendedConcerts = new Set<string>(
-        concerts
-          .filter((c) => c.status === "attended")
-          .map((c) => c.ticketmaster_id)
+      const attendedEventIds = new Set<string>(
+        events
+          .filter((e: MarkedEvent) => e.status === "attended")
+          .map((e: MarkedEvent) => e.ticketmaster_id)
       );
-      const savedConcerts = new Set<string>(
-        concerts
-          .filter((c) => c.status === "saved")
-          .map((c) => c.ticketmaster_id)
+      const savedEventIds = new Set<string>(
+        events
+          .filter((e: MarkedEvent) => e.status === "saved")
+          .map((e: MarkedEvent) => e.ticketmaster_id)
       );
 
-      setAttendedConcerts(attendedConcerts);
-      setSavedConcerts(savedConcerts);
+      setAttendedEventIds(attendedEventIds);
+      setSavedEventIds(savedEventIds);
     } catch (error) {
       console.error("Error:", error.response?.data?.error || error.message);
     }
   };
 
-  getUserConcerts();
+  getUserEvents();
 
   return (
     <FlatList
       data={events}
       renderItem={({ item }) => {
-        const formattedDate = new Date(
-          item.dates.start.dateTime
-        ).toLocaleString();
+        let id: string;
+        if ("ticketmaster_id" in item) {
+          id = item.ticketmaster_id;
+        } else {
+          id = item.id;
+        }
 
-        const isAttended = attendedConcerts?.has(item.id);
-        const isSaved = savedConcerts?.has(item.id);
+        const formattedDate =
+          "dates" in item
+            ? new Date(item.dates.start.dateTime).toLocaleString()
+            : new Date(item.concert_date).toLocaleDateString();
+
+        const isAttended = attendedEventIds?.has(id);
+        const isSaved = savedEventIds?.has(id);
         return (
           <View style={styles.event}>
             <Text style={[styles.eventTitle, styles.postText]}>
-              {item.name}
+              {"concert_name" in item ? item.concert_name : item.name}
             </Text>
             <Text style={styles.postText}>{formattedDate}</Text>
             <Text style={styles.link} onPress={() => Linking.openURL(item.url)}>
               {item.url}
             </Text>
-            <Text style={styles.postText}>3 friends saved this event</Text>
 
             <View style={styles.eventActions}>
               <Pressable
                 onPress={() =>
-                  markConcert(
-                    user?.id,
-                    item.id,
-                    item.name,
-                    item.dates.start.dateTime,
+                  markEvent(
+                    user.id,
+                    "ticketmaster_id" in item ? item.ticketmaster_id : item.id,
+                    "concert_name" in item ? item.concert_name : item.name,
+                    "concert_date" in item
+                      ? item.concert_date
+                      : item.dates.start.dateTime,
                     item.url,
                     "saved"
                   )
@@ -134,11 +141,13 @@ export default function EventsList({ events }) {
               </Pressable>
               <Pressable
                 onPress={() =>
-                  markConcert(
-                    user?.id,
-                    item.id,
-                    item.name,
-                    item.dates.start.dateTime,
+                  markEvent(
+                    user.id,
+                    "ticketmaster_id" in item ? item.ticketmaster_id : item.id,
+                    "concert_name" in item ? item.concert_name : item.name,
+                    "concert_date" in item
+                      ? item.concert_date
+                      : item.dates.start.dateTime,
                     item.url,
                     "attended"
                   )
@@ -154,7 +163,9 @@ export default function EventsList({ events }) {
           </View>
         );
       }}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) =>
+        "user_concert_id" in item ? item.user_concert_id : item.id
+      }
       contentContainerStyle={{ gap: 10 }}
     />
   );
