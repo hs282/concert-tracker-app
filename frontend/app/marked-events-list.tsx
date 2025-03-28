@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
-import EventsList from "@/components/EventsList";
+import EventsList from "@/components/EventsList/EventsList";
 import { APP_CONFIG } from "@/constants/config";
 
 export default function MarkedEventsList() {

@@ -2,7 +2,9 @@ import { ImageBackground, StyleSheet, TextInput, View } from "react-native";
 import EvilIcons from "@expo/vector-icons/EvilIcons";
 import { useEffect, useState } from "react";
 import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
-import EventsList, { TicketmasterEvent } from "@/components/EventsList";
+import EventsList, {
+  TicketmasterEvent,
+} from "@/components/EventsList/EventsList";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";

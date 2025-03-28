@@ -8,8 +8,8 @@ import {
   View,
 } from "react-native";
 import axios from "axios";
-import { useUser } from "../context/UserContext";
-import { useState } from "react";
+import { useUser } from "../../context/UserContext";
+import { useEffect, useState } from "react";
 import FontAwesome from "@expo/vector-icons/build/FontAwesome";
 import { MarkedEvent } from "@/app/(tabs)/profile";
 
@@ -62,33 +62,35 @@ export default function EventsList({ events }: { events: Event[] }) {
   const [attendedEventIds, setAttendedEventIds] = useState<Set<string>>();
   const [savedEventIds, setSavedEventIds] = useState<Set<string>>();
 
-  const getUserEvents = async () => {
-    try {
-      const url = `${process.env.EXPO_PUBLIC_API_BASE_URL}/user/${user.id}/concerts`;
-      const response = await axios.get(url);
+  useEffect(() => {
+    const getUserEvents = async () => {
+      try {
+        const url = `${process.env.EXPO_PUBLIC_API_BASE_URL}/user/${user.id}/concerts`;
+        const response = await axios.get(url);
 
-      const events = await response.data.concerts;
+        const events = await response.data.concerts;
 
-      // convert array to Set for faster lookup
-      const attendedEventIds = new Set<string>(
-        events
-          .filter((e: MarkedEvent) => e.status === "attended")
-          .map((e: MarkedEvent) => e.ticketmaster_id)
-      );
-      const savedEventIds = new Set<string>(
-        events
-          .filter((e: MarkedEvent) => e.status === "saved")
-          .map((e: MarkedEvent) => e.ticketmaster_id)
-      );
+        // convert array to Set for faster lookup
+        const attendedEventIds = new Set<string>(
+          events
+            .filter((e: MarkedEvent) => e.status === "attended")
+            .map((e: MarkedEvent) => e.ticketmaster_id)
+        );
+        const savedEventIds = new Set<string>(
+          events
+            .filter((e: MarkedEvent) => e.status === "saved")
+            .map((e: MarkedEvent) => e.ticketmaster_id)
+        );
 
-      setAttendedEventIds(attendedEventIds);
-      setSavedEventIds(savedEventIds);
-    } catch (error) {
-      console.error("Error:", error.response?.data?.error || error.message);
-    }
-  };
-
-  getUserEvents();
+        setAttendedEventIds(attendedEventIds);
+        setSavedEventIds(savedEventIds);
+      } catch (error) {
+        console.error("Error:", error.response?.data?.error || error.message);
+      }
+    };
+    /* TODO: If events argument is of type MarkedEvent, then no need to call getUserEvents() */
+    getUserEvents();
+  });
 
   return (
     <FlatList
@@ -101,10 +103,9 @@ export default function EventsList({ events }: { events: Event[] }) {
           id = item.id;
         }
 
-        const formattedDate =
-          "dates" in item
-            ? new Date(item.dates.start.dateTime).toLocaleString()
-            : new Date(item.concert_date).toLocaleDateString();
+        const dateTime =
+          "dates" in item ? item.dates.start.dateTime : item.concert_date;
+        const formattedDate = new Date(dateTime).toLocaleString();
 
         const isAttended = attendedEventIds?.has(id);
         const isSaved = savedEventIds?.has(id);
@@ -132,6 +133,7 @@ export default function EventsList({ events }: { events: Event[] }) {
                     "saved"
                   )
                 }
+                accessibilityLabel="Mark as saved"
               >
                 <FontAwesome
                   name={isSaved ? "bookmark" : "bookmark-o"}
@@ -152,6 +154,7 @@ export default function EventsList({ events }: { events: Event[] }) {
                     "attended"
                   )
                 }
+                accessibilityLabel="Mark as attended"
               >
                 <AntDesign
                   name={isAttended ? "checkcircle" : "checkcircleo"}

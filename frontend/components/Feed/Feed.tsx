@@ -1,9 +1,10 @@
 import { FlatList, View } from "react-native";
-import FeedItem from "./FeedItem";
+import FeedItem from "../FeedItem/FeedItem";
 import { useUser } from "@/context/UserContext";
 
 export interface UserEventInteraction {
   first_name?: string;
+  id?: string;
   user_concert_id: string;
   concert_name: string;
   concert_date: string;
@@ -23,10 +24,12 @@ export default function Feed({
   }
 
   const renderItem = ({ item }: { item: UserEventInteraction }) => {
-    const userFirstName = item.first_name;
+    const feedItemUserId = item.id;
+    const feedItemUserFirstName = item.first_name;
     let displayName;
-    if (userFirstName && userFirstName !== user?.first_name)
-      displayName = userFirstName;
+    /* TODO: modify this logic for displaying name vs "You" */
+    if (feedItemUserFirstName && feedItemUserId && feedItemUserId !== user?.id)
+      displayName = feedItemUserFirstName;
     else displayName = "You";
 
     return (

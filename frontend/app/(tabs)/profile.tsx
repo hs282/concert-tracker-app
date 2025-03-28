@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Feed from "@/components/Feed";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import EvilIcons from "@expo/vector-icons/EvilIcons";
@@ -18,6 +17,7 @@ import { Link, router } from "expo-router";
 import { useUser } from "@/context/UserContext";
 import axios from "axios";
 import { APP_CONFIG } from "@/constants/config";
+import Feed from "@/components/Feed/Feed";
 
 // to get current user's email:
 // import { auth } from '../firebase'

@@ -421,7 +421,7 @@ app.get("/newsfeed/:user_id", async (req, res) => {
 
     // Get user-concert interactions of user and their friends, sorted by updated_at
     const concertsQuery = await pool.query(
-      `SELECT uc.id AS user_concert_id, uc.user_id, users.first_name, uc.concert_id, uc.status, uc.updated_at AS marked_date, c.name AS concert_name, c.date AS concert_date, c.url
+      `SELECT uc.id AS user_concert_id, uc.user_id, users.first_name, users.id, uc.concert_id, uc.status, uc.updated_at AS marked_date, c.name AS concert_name, c.date AS concert_date, c.url
            FROM user_concerts uc
            JOIN concerts c ON c.id = uc.concert_id
            JOIN users ON users.id = uc.user_id

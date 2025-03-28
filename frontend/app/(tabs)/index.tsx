@@ -5,7 +5,7 @@ import {
   Text,
   View,
 } from "react-native";
-import Feed from "@/components/Feed";
+import Feed from "@/components/Feed/Feed";
 import { useUser } from "@/context/UserContext";
 import { useState } from "react";
 import axios from "axios";
