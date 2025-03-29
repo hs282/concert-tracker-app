@@ -8,11 +8,11 @@ Users can search for upcoming concerts, mark them as saved/attended, and view co
 
 ### Friend Activity tab
 
-<img src="./screenshots/friend-activity.png" width="100"/>
+<img src="./screenshots/friend-activity.png" width="200"/>
 
 ### Concert details
 
-<img src="./screenshots/concert-details.png" width="100"/>
+<img src="./screenshots/concert-details.png" width="300"/>
 
 ### Search tab
 
