@@ -8,7 +8,7 @@ Users can search for upcoming concerts, mark them as saved/attended, and view co
 
 ### Friend Activity tab
 
-<img src="./screenshots/friend-activity.png" width="200"/>
+<img src="./screenshots/friend-activity.png" width="300"/>
 
 ### Concert details
 
@@ -16,19 +16,19 @@ Users can search for upcoming concerts, mark them as saved/attended, and view co
 
 ### Search tab
 
-<img src="./screenshots/search.png" width="100"/>
+<img src="./screenshots/search.png" width="300"/>
 
 ### Profile tab
 
-<img src="./screenshots/profile.png" width="100"/>
+<img src="./screenshots/profile.png" width="300"/>
 
 ### Attended Concerts list
 
-<img src="./screenshots/attended-concerts.png" width="100"/>
+<img src="./screenshots/attended-concerts.png" width="300"/>
 
 ### Saved Concerts list
 
-<img src="./screenshots/saved-concerts.png" width="100"/>
+<img src="./screenshots/saved-concerts.png" width="300"/>
 
 ## Built With
 
