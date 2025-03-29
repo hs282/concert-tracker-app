@@ -6,6 +6,30 @@ An iOS app that functions as a concert-tracking diary/social media
 
 Users can search for upcoming concerts, mark them as saved/attended, and view concerts that their friends have saved/attended.
 
+### Friend Activity tab
+
+<img src="./screenshots/friend-activity.png" width="100"/>
+
+### Concert details
+
+<img src="./screenshots/concert-details.png" width="100"/>
+
+### Search tab
+
+<img src="./screenshots/search.png" width="100"/>
+
+### Profile tab
+
+<img src="./screenshots/profile.png" width="100"/>
+
+### Attended Concerts list
+
+<img src="./screenshots/attended-concerts.png" width="100"/>
+
+### Saved Concerts list
+
+<img src="./screenshots/saved-concerts.png" width="100"/>
+
 ## Built With
 
 - <img src="https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB">
