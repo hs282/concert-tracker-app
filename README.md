@@ -1,14 +1,10 @@
-## The Inspiration
+# Concert Tracking App
 
-- Recently, I have found myself to be  
-  describe purpose (niche apps are becoming more popular as people crave community over mutual interests, such as Beli, Strava, GoodReads)
-- explain what the "competitor" apps lack (dice, gigit, concert archives)
+An iOS app that functions as a concert-tracking diary/social media
 
 ## The App
 
-- features/core functionality
-- include screenshots and maybe gif
-- target audience
+Users can search for upcoming concerts, mark them as saved/attended, and view concerts that their friends have saved/attended.
 
 ## Built With
 
@@ -25,7 +21,14 @@
 - <img src="https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white">
 
 ## Installation steps/how to run
-1. 
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Configure a `.env` file for both the backend and frontend directories
+4. Start the application by running `npx expo start` in the frontend directory and `npm start` in the backend directory.
 
 ## Plans for future work
 
